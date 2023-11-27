@@ -1,0 +1,6 @@
+api_wan <- function(resource){
+  url <- base::paste0('https://swapi.dev/api/', resource)
+  response <- httr::GET(url)
+  content <- base::rawToChar(response$content)
+  jsonlite::fromJSON(content)$results
+}

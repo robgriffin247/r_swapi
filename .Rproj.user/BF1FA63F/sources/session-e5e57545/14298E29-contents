@@ -1,0 +1,51 @@
+library(jsonlite)
+library(data.table)
+source('pipeline/api_wan.R')
+
+
+# Cosmetic control of the console
+options(datatable.print.nrows=6, datatable.print.trunc.cols=TRUE)
+
+
+# Set data output directories
+raw_path <- 'data/raw/raw_'
+
+
+# Collect raw data from API
+resources <- c('films', 'people', 'planets', 'species', 'starships', 'vehicles')
+existing <- gsub('raw_|.json', '', list.files(gsub('raw_', '', raw_path)))
+
+for(resource in resources){
+  # Scrape only missing resources, or re-scrape all with "| TRUE"
+  if(!(resource %in% existing) | FALSE){
+    write_json(api_wan(resource), paste0(raw_path, resource, '.json'))  
+  }
+}
+
+
+# Get raw data into working environment
+for(resource in resources){
+  assign(paste0('raw_', resource), data.table(fromJSON(paste0(raw_path, resource, '.json'))))
+}
+  
+
+# Create staging datasets (flattening lists)
+stg_films <- raw_films[, .SD, .SDcols=raw_films[, names(.SD)[sapply(.SD, typeof)!='list']]]
+stg_character_appearances <- raw_films[, .('character'=unlist(characters, recursive=FALSE)), .(title, episode_id)]
+stg_planet_appearances <- raw_films[, .('planet'=unlist(planets, recursive=FALSE)), .(title, episode_id)]
+stg_starship_appearances <- raw_films[, .('starship'=unlist(starships, recursive=FALSE)), .(title, episode_id)]
+stg_vehicle_appearances <- raw_films[, .('vehicle'=unlist(vehicles, recursive=FALSE)), .(title, episode_id)]
+stg_species_appearances <- raw_films[, .('planet'=unlist(species, recursive=FALSE)), .(title, episode_id)]
+
+
+raw_people[, ]
+stg_people <- raw_people[, .SD, .SDcols=raw_people[, names(.SD)[sapply(.SD, typeof)!='list']]]
+stg_people[, species:=raw_people[, unlist(species)]]
+stg_character_species[, .N, by=name]
+# 
+# stg_films[, .(episode_id, title, release_date, director)][
+#   stg_character_appearances[, .('n_characters'=.N), episode_id], on='episode_id'][
+#     stg_planet_appearances[, .('n_planets'=.N), episode_id], on='episode_id'][
+#       stg_starship_appearances[, .('n_starships'=.N), episode_id], on='episode_id'][
+#         stg_vehicle_appearances[, .('n_vehicles'=.N), episode_id], on='episode_id'][
+#           stg_species_appearances[, .('n_species'=.N), episode_id], on='episode_id']

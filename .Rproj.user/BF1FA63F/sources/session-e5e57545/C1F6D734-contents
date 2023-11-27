@@ -1,0 +1,28 @@
+# api_wan <- function(resource){
+#   url <- base::paste0('https://swapi.dev/api/', resource)
+#   response <- httr::GET(url)
+#   content <- base::rawToChar(response$content)
+#   jsonlite::fromJSON(content)$results
+# }
+
+api_wan <- function(resource){
+  print(paste('Scraping page 1 of', resource))
+  url <- base::paste0('https://swapi.dev/api/', resource, '/?page=1')
+  response <- httr::GET(url)
+  content <- base::rawToChar(response$content)
+  
+  results <- jsonlite::fromJSON(content)$results
+  
+  npages <- ceiling(jsonlite::fromJSON(content)$count/10)
+  page <- 1
+  while(page<npages){
+    page <- page+1
+    print(paste('Scraping page', page,'of', resource))
+    url <- base::paste0('https://swapi.dev/api/', resource, '/?page=', page)
+    response <- httr::GET(url)
+    content <- base::rawToChar(response$content)
+  
+    results <- rbind(results, jsonlite::fromJSON(content)$results)
+  }
+  results
+}

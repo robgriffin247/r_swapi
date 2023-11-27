@@ -1,0 +1,2 @@
+source('pipeline/raw/api_wan.R')
+data.table::fwrite(api_wan('films'), 'data/raw/raw_films.csv', sep=';')
